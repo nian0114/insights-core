@@ -269,11 +269,11 @@ class DataCollector(object):
         Returns:
             default:
                 path to generated tarfile
-            conf.obfuscate==True:
+            config.obfuscate==True:
                 path to generated tarfile, scrubbed by soscleaner
-            conf.output_dir:
+            config.output_dir:
                 path to a generated directory
-            conf.obfuscate==True && conf.output_dir:
+            config.obfuscate==True && config.output_dir:
                 path to generated directory, scubbed by soscleaner
         Ideally, we may want to have separate functions for directories
             and archive files.
