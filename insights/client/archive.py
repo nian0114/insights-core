@@ -29,14 +29,24 @@ class InsightsArchive(object):
         Create temp dir, archive dir, and command dir
         """
         self.config = config
+        # input this to core collector as `tmp_path`
         self.tmp_dir = tempfile.mkdtemp(prefix='/var/tmp/')
+
+        # we don't really need this anymore...
         self.archive_tmp_dir = tempfile.mkdtemp(prefix='/var/tmp/')
         name = determine_hostname()
+
+        # for core collector, use the returned `output_path` as
+        #   archive_dir and archive_name source
+
         self.archive_name = ("insights-%s-%s" %
                              (name,
                               time.strftime("%Y%m%d%H%M%S")))
-        self.archive_dir = self.create_archive_dir()
-        self.cmd_dir = self.create_command_dir()
+
+        # Function calls moved to DataCollector.run_collection
+        self.archive_dir = None
+        self.cmd_dir = None
+
         self.compressor = config.compressor
         self.tar_file = None
         atexit.register(self.cleanup_tmp)

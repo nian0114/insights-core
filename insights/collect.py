@@ -214,7 +214,7 @@ def get_pool(parallel, kwargs):
         yield None
 
 
-def collect(manifest=default_manifest, tmp_path=None, compress=False):
+def collect(manifest=default_manifest, tmp_path=None, compress=False, rm_conf={}, insights_client=False):
     """
     This is the collection entry point. It accepts a manifest, a temporary
     directory in which to store output, and a boolean for optional compression.
