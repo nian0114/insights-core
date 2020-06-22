@@ -441,7 +441,7 @@ class InsightsUploadConf(object):
             return None
         # Using print here as this could contain sensitive information
         print('Blacklist configuration parsed contents:')
-        print(success)
+        print(json.dumps(success, indent=4))
         logger.info('Parsed successfully.')
         return True
 
@@ -573,60 +573,31 @@ class InsightsUploadConf(object):
                 return spec_prefix + spec_conversion[sname]
             return spec_prefix + sname
 
-        # TODO: DRY
-        for c in self.rm_conf.get('commands', []):
-            matched = False
-            for spec in uploader_json['commands']:
-                if c == spec['symbolic_name'] or c == spec['command']:
-                    # matches to a symbolic name or raw command, cache the symbolic name
-                    sname = spec['symbolic_name']
-                    if not six.PY3:
-                        sname = sname.encode('utf-8')
-                    component = _get_component_by_symbolic_name(sname)
-                    cmds_files_names_map[c] = component
-                    # keep track of longest key for logging
-                    if len(c) > longest_key:
-                        longest_key = len(c)
-                    updated_components.append(component)
-                    matched = True
-                    break
-            if not matched:
-                # could not match the command to anything, keep in config as-is
-                updated_commands.append(c)
-
-        for f in self.rm_conf.get('files', []):
-            matched = False
-            for spec in uploader_json['files']:
-                if f == spec['symbolic_name'] or f == spec['file']:
-                    # matches to a symbolic name or raw command, cache the symbolic name
-                    sname = spec['symbolic_name']
-                    if not six.PY3:
-                        sname = sname.encode('utf-8')
-                    component = _get_component_by_symbolic_name(sname)
-                    cmds_files_names_map[c] = component
-                    # keep track of longest key for logging
-                    if len(c) > longest_key:
-                        longest_key = len(c)
-                    updated_components.append(component)
-                    matched = True
-                    break
-            for spec in uploader_json['globs']:
-                if f == spec['symbolic_name']:
-                    # matches only to a symbolic name for globs
-                    sname = spec['symbolic_name']
-                    if not six.PY3:
-                        sname = sname.encode('utf-8')
-                    component = _get_component_by_symbolic_name(sname)
-                    cmds_files_names_map[c] = component
-                    # keep track of longest key for logging
-                    if len(c) > longest_key:
-                        longest_key = len(c)
-                    updated_components.append(component)
-                    matched = True
-                    break
-            if not matched:
-                # could not match the file to anything, keep in config as-is
-                updated_files.append(f)
+        for rm_conf_key in ['commands', 'files']:
+            search_keys = [rm_conf_key]
+            if rm_conf_key == 'files':
+                search_keys = ['files', 'globs']
+            for c in self.rm_conf.get(rm_conf_key, []):
+                matched = False
+                for s in search_keys:
+                    singular = s.rstrip('s')
+                    for spec in uploader_json[s]:
+                        if c == spec['symbolic_name'] or (c == spec[singular] and s != 'globs'):
+                            # matches to a symbolic name or raw command, cache the symbolic name
+                            sname = spec['symbolic_name']
+                            if not six.PY3:
+                                sname = sname.encode('utf-8')
+                            component = _get_component_by_symbolic_name(sname)
+                            cmds_files_names_map[c] = component
+                            if len(c) > longest_key:
+                                longest_key = len(c)
+                            updated_components.append(component)
+                            matched = True
+                            break
+                if not matched:
+                    # could not match the command to anything, keep in config as-is
+                    if rm_conf_key == 'commands':
+                        updated_commands.append(c)
 
         for n in cmds_files_names_map:
             spec_name_no_prefix = cmds_files_names_map[n].rsplit('.', 1)[-1]
@@ -643,7 +614,7 @@ class InsightsUploadConf(object):
 
 if __name__ == '__main__':
     from .config import InsightsConfig
-    config = InsightsConfig().load_all()
+    config = InsightsConfig(core_collect=True).load_all()
     uploadconf = InsightsUploadConf(config)
     uploadconf.validate()
     report = uploadconf.create_report()
