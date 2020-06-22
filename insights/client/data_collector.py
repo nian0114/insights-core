@@ -194,10 +194,8 @@ class DataCollector(object):
         # initialize systemd-notify thread
         systemd_notify_init_thread()
 
-        # create temp dirs here so archive can be primed for
-        #   core collection instead if needed
-        self.archive.archive_dir = self.archive.create_archive_dir()
-        self.archive.cmd_dir = self.archive.create_command_dir()
+        self.archive.create_archive_dir()
+        self.archive.create_command_dir()
 
         if rm_conf is None:
             rm_conf = {}

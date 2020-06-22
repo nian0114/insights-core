@@ -11,6 +11,8 @@ import os
 import requests
 import yaml
 import stat
+import pkgutil
+import insights
 from six.moves import configparser as ConfigParser
 
 from subprocess import Popen, PIPE, STDOUT

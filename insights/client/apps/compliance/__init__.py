@@ -24,7 +24,6 @@ class ComplianceClient:
         self.conn = InsightsConnection(config)
         self.hostname = determine_hostname()
         self.archive = InsightsArchive(config)
-        self.archive.archive_dir = self.archive.create_archive_dir()
 
     def oscap_scan(self):
         self._assert_oscap_rpms_exist()

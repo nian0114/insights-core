@@ -36,14 +36,14 @@ class InsightsArchive(object):
         self.archive_tmp_dir = tempfile.mkdtemp(prefix='/var/tmp/')
         name = determine_hostname()
 
-        # for core collector, use the returned `output_path` as
-        #   archive_dir and archive_name source
-
         self.archive_name = ("insights-%s-%s" %
                              (name,
                               time.strftime("%Y%m%d%H%M%S")))
 
-        # Function calls moved to DataCollector.run_collection
+        # lazy create these, only if needed when certain
+        #   functions are called
+        # classic collection and compliance needs these
+        # core collection will set "archive_dir" on its own
         self.archive_dir = None
         self.cmd_dir = None
 
@@ -53,16 +53,23 @@ class InsightsArchive(object):
 
     def create_archive_dir(self):
         """
-        Create the archive dir
+        Create the archive directory if it is undefined or does not exist.
         """
+        if self.archive_dir and os.path.exists(self.archive_dir):
+            # attr defined and exists. move along
+            return
+
         archive_dir = os.path.join(self.tmp_dir, self.archive_name)
+        logger.debug('Creating archive directory %s...', archive_dir)
         os.makedirs(archive_dir, 0o700)
-        return archive_dir
+        self.archive_dir = archive_dir
+        return self.archive_dir
 
     def create_command_dir(self):
         """
         Create the "sos_commands" dir
         """
+        self.create_archive_dir()
         cmd_dir = os.path.join(self.archive_dir, "insights_commands")
         os.makedirs(cmd_dir, 0o700)
         return cmd_dir
@@ -71,6 +78,7 @@ class InsightsArchive(object):
         """
         Returns the full archive path
         """
+        self.create_archive_dir()
         return os.path.join(self.archive_dir, path.lstrip('/'))
 
     def _copy_file(self, path):
@@ -107,6 +115,7 @@ class InsightsArchive(object):
         """
         Recursively copy directory
         """
+        self.create_archive_dir()
         for directory in path:
             if os.path.isdir(path):
                 full_path = os.path.join(self.archive_dir, directory.lstrip('/'))
@@ -151,15 +160,17 @@ class InsightsArchive(object):
         """
         Delete the entire tmp dir
         """
-        logger.debug("Deleting: " + self.tmp_dir)
-        shutil.rmtree(self.tmp_dir, True)
+        if self.tmp_dir:
+            logger.debug("Deleting: " + self.tmp_dir)
+            shutil.rmtree(self.tmp_dir, True)
 
     def delete_archive_dir(self):
         """
         Delete the entire archive dir
         """
-        logger.debug("Deleting: " + self.archive_dir)
-        shutil.rmtree(self.archive_dir, True)
+        if self.archive_dir:
+            logger.debug("Deleting: " + self.archive_dir)
+            shutil.rmtree(self.archive_dir, True)
 
     def delete_archive_file(self):
         """
