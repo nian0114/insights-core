@@ -72,6 +72,7 @@ class InsightsArchive(object):
         self.create_archive_dir()
         cmd_dir = os.path.join(self.archive_dir, "insights_commands")
         os.makedirs(cmd_dir, 0o700)
+        self.cmd_dir = cmd_dir
         return cmd_dir
 
     def get_full_archive_path(self, path):
