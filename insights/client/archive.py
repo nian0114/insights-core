@@ -22,11 +22,20 @@ class InsightsArchive(object):
     """
     This class is an interface for adding command output
     and files to the insights archive
+
+    Attributes:
+        config          - an InsightsConfig object
+        tmp_dir         - a temporary directory in /var/tmp
+        archive_dir     - location to collect archive data inside tmp_dir
+        archive_tmp_dir - a temporary directory to write the final archive file
+        archive_name    - filename of the archive and archive_dir
+        cmd_dir         - insights_commands directory inside archive_dir
+        compressor      - tar compression flag to use
+        tar_file        - path of the final archive file
     """
     def __init__(self, config):
         """
         Initialize the Insights Archive
-        Create temp dir, archive dir, and command dir
         """
         self.config = config
         # input this to core collector as `tmp_path`
@@ -34,10 +43,9 @@ class InsightsArchive(object):
 
         # we don't really need this anymore...
         self.archive_tmp_dir = tempfile.mkdtemp(prefix='/var/tmp/')
-        name = determine_hostname()
 
         self.archive_name = ("insights-%s-%s" %
-                             (name,
+                             (determine_hostname(),
                               time.strftime("%Y%m%d%H%M%S")))
 
         # lazy create these, only if needed when certain
@@ -57,23 +65,26 @@ class InsightsArchive(object):
         """
         if self.archive_dir and os.path.exists(self.archive_dir):
             # attr defined and exists. move along
-            return
+            return self.archive_dir
 
         archive_dir = os.path.join(self.tmp_dir, self.archive_name)
-        logger.debug('Creating archive directory %s...', archive_dir)
-        os.makedirs(archive_dir, 0o700)
+        if not os.path.exists(archive_dir):
+            logger.debug('Creating archive directory %s...', archive_dir)
+            os.makedirs(archive_dir, 0o700)
         self.archive_dir = archive_dir
         return self.archive_dir
 
     def create_command_dir(self):
         """
-        Create the "sos_commands" dir
+        Create the "insights_commands" dir
         """
         self.create_archive_dir()
         cmd_dir = os.path.join(self.archive_dir, "insights_commands")
-        os.makedirs(cmd_dir, 0o700)
+        logger.debug('Creating command directory %s...', cmd_dir)
+        if not os.path.exists(cmd_dir):
+            os.makedirs(cmd_dir, 0o700)
         self.cmd_dir = cmd_dir
-        return cmd_dir
+        return self.cmd_dir
 
     def get_full_archive_path(self, path):
         """
