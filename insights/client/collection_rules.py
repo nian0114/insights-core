@@ -573,17 +573,42 @@ class InsightsUploadConf(object):
                 return spec_prefix + spec_conversion[sname]
             return spec_prefix + sname
 
+        # this is a little confusing after being refactored, so:
+        #   uploader_json - the loaded uploader.json data, as a dict
+        #   rm_conf_key   - one of the section names in remove.conf (commands and files)
+        #   search_keys   - the keys to look for in uploader.json depending on rm_conf_key.
+        #                   for "commands" it's just "commands" but for "files" we're
+        #                   looking in both "files" and "globs"
+        #   singular      - search_key with the trailing "s" removed to peek into the
+        #                   uploader.json dicts
+        #   c             - one of the values of our current rm_conf_key
+        #   matched       - whether or not a match to a component has been found in the list
+        #   s             - one of the search_keys
+        #   spec          - one of the individual dicts of uploader.json
+        #   sname         - the symbolic name of a matching record
+        #   component     - the component matching to a symbolic name
+
+        #   updated_components   - the list of matching components
+        #   updated_commands     - leftover commands that could not be matched
+        #   updated_files        - leftover files that could not be matched
+        #   cmds_files_names_map - dict of rm_conf entries and the matching component for logging
+        #   longest_key          - keep track of longest entry for logging prettiness
+
         for rm_conf_key in ['commands', 'files']:
+            # iterate over the two keys we are interested in
             search_keys = [rm_conf_key]
             if rm_conf_key == 'files':
                 search_keys = ['files', 'globs']
             for c in self.rm_conf.get(rm_conf_key, []):
+                # iterate over each value in commands/files
                 matched = False
                 for s in search_keys:
+                    # will only be 1 or 2 iterations - [commands] or [files, globs]
                     singular = s.rstrip('s')
                     for spec in uploader_json[s]:
                         if c == spec['symbolic_name'] or (c == spec[singular] and s != 'globs'):
                             # matches to a symbolic name or raw command, cache the symbolic name
+                            # only match symbolic name for globs
                             sname = spec['symbolic_name']
                             if not six.PY3:
                                 sname = sname.encode('utf-8')
