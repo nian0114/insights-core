@@ -6,6 +6,7 @@ import six
 import logging
 
 from .constants import InsightsConstants as constants
+from insights.specs.default import DefaultSpecs
 
 APP_NAME = constants.app_name
 logger = logging.getLogger(__name__)
@@ -37,7 +38,6 @@ def map_rm_conf_to_components(rm_conf):
     updated_commands = []
     updated_files = []
     updated_components = []
-    # core_specs = vars(DefaultSpecs).keys()
 
     uploader_json_file = pkgutil.get_data(insights.__name__, "uploader_json_map.json")
     uploader_json = json.loads(uploader_json_file)
@@ -97,6 +97,9 @@ def map_rm_conf_to_components(rm_conf):
                         if not six.PY3:
                             sname = sname.encode('utf-8')
                         component = _get_component_by_symbolic_name(sname)
+                        if component is None:
+                            # the spec is not collected by core
+                            continue
                         conversion_map[c] = component
                         if len(c) > longest_key:
                             longest_key = len(c)
@@ -133,7 +136,6 @@ def _get_component_by_symbolic_name(sname):
         'netstat__agn': 'netstat_agn',
         'rpm__V_packages': 'rpm_V_packages',
         'ss_tupna': 'ss',
-        'systemd_analyze_blame': None,
 
         'machine_id1': 'machine_id',
         'machine_id2': 'machine_id',
@@ -152,6 +154,8 @@ def _get_component_by_symbolic_name(sname):
     }
 
     if sname in spec_conversion:
+        if spec_conversion[sname] is None:
+            return None
         if sname == 'ps_auxwww':
             return spec_conversion[sname]
         return spec_prefix + spec_conversion[sname]
