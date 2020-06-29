@@ -251,7 +251,6 @@ class DataCollector(object):
                         self.archive.add_to_archive(glob_spec)
         logger.debug('Spec collection finished.')
 
-        # collect metadata
         logger.debug('Collecting metadata...')
         self._write_branch_info(branch_info)
         self._write_display_name()
@@ -259,6 +258,62 @@ class DataCollector(object):
         self._write_tags()
         self._write_blacklist_report(blacklist_report)
         logger.debug('Metadata collection finished.')
+
+    def data_redaction(self, rm_conf):
+        # data redaction
+
+        if rm_conf is None:
+            rm_conf = {}
+        exclude = None
+        if rm_conf:
+            try:
+                exclude = rm_conf['patterns']
+                # handle the None or empty case of the sub-object
+                if 'regex' in exclude and not exclude['regex']:
+                    raise LookupError
+                logger.warn("WARNING: Skipping patterns defined in blacklist configuration")
+            except LookupError:
+                logger.debug('Patterns section of blacklist configuration is empty.')
+
+        redacted_archive = InsightsArchive(self.config)
+        redacted_archive.create_archive_dir()
+        redacted_archive.create_command_dir()
+
+        logger.debug('Running content redaction...')
+        for root, dirs, files in os.walk(self.archive.archive_dir):
+            src_dir_base = os.path.relpath(root, self.archive.archive_dir)
+            dst_dir = os.path.join(redacted_archive.archive_dir, src_dir_base)
+
+            try:
+                os.makedirs(dst_dir)
+            except OSError as e:
+                # dir exists
+                pass
+
+            for f in files:
+                src_file = os.path.join(root, f)
+                dst_file = os.path.join(dst_dir, f)
+
+                # do redaction
+
+                # password removal
+                sedcmd = Popen(['sed', '-rf', constants.default_sed_file, src_file], stdout=PIPE)
+                # patterns removal
+                if exclude:
+                    if 'regex' in exclude and exclude['regex']:
+                        grepcmd = Popen(['grep', '-v', '-E', '\n'.join(exclude['regex'])], stdin=sedcmd.stdout)
+                    else:
+                        grepcmd = Popen(['grep', '-v', '-F', '\n'.join(exclude)], stdin=sedcmd.stdout)
+
+                    stdout, stderr = grepcmd.communicate()
+                else:
+                    stdout, stderr = sedcmd.communicate()
+
+                with open(dst_file, 'w') as dst:
+                    dst.write(stdout)
+
+        self.archive.cleanup_tmp()
+        self.archive = redacted_archive
 
     def done(self, conf, rm_conf):
         """

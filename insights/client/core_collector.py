@@ -9,6 +9,7 @@ from insights import collect
 
 from .constants import InsightsConstants as constants
 from .data_collector import DataCollector
+from .utilities import systemd_notify_init_thread
 
 APP_NAME = constants.app_name
 logger = logging.getLogger(__name__)
@@ -23,6 +24,9 @@ class CoreCollector(DataCollector):
         Initialize core collection here and generate the
         output directory with collected data.
         '''
+        # initialize systemd-notify thread
+        systemd_notify_init_thread()
+
         if rm_conf is None:
             rm_conf = {}
 
@@ -52,11 +56,11 @@ class CoreCollector(DataCollector):
         #   keyword-hiding stuff we don't want to use.
         #   Obfuscation to be done in soscleaner later,
         #   so pass in a copy of rm_conf with keywords removed.
-        filtered_rm_conf = copy.deepcopy(rm_conf)
-        if 'keywords' in filtered_rm_conf:
-            del filtered_rm_conf['keywords']
+        # filtered_rm_conf = copy.deepcopy(rm_conf)
+        # if 'keywords' in filtered_rm_conf:
+        #     del filtered_rm_conf['keywords']
 
-        collected_data_path = collect.collect(tmp_path=self.archive.tmp_dir, rm_conf=filtered_rm_conf, insights_client=True)
+        collected_data_path = collect.collect(tmp_path=self.archive.tmp_dir)
         # update the archive dir with the reported data location from Insights Core
         if not collected_data_path:
             raise RuntimeError('Error running collection: no output path defined.')

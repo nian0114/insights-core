@@ -301,6 +301,7 @@ def collect(config, pconn):
         dc = DataCollector(config, archive)
     logger.info('Starting to collect Insights data for %s', msg_name)
     dc.run_collection(collection_rules, rm_conf, branch_info, blacklist_report)
+    dc.data_redaction(rm_conf)
     output = dc.done(collection_rules, rm_conf)
     return output
 

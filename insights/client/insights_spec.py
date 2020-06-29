@@ -86,37 +86,41 @@ class InsightsCommand(InsightsSpec):
             else:
                 raise err
 
+        if proc0.returncode == 126 or proc0.returncode == 127:
+            stdout = "Could not find cmd: %s", self.command
+            return
+
         dirty = False
 
-        cmd = "sed -rf " + constants.default_sed_file
-        sedcmd = Popen(shlex.split(cmd),
-                       stdin=proc0.stdout,
-                       stdout=PIPE)
-        proc0.stdout.close()
-        proc0 = sedcmd
+        # cmd = "sed -rf " + constants.default_sed_file
+        # sedcmd = Popen(shlex.split(cmd),
+        #                stdin=proc0.stdout,
+        #                stdout=PIPE)
+        # proc0.stdout.close()
+        # proc0 = sedcmd
 
-        if self.exclude is not None:
-            exclude_file = NamedTemporaryFile()
-            exclude_file.write("\n".join(self.exclude).encode('utf-8'))
-            exclude_file.flush()
-            if self.regex:
-                cmd = "grep -E -v -f %s" % exclude_file.name
-            else:
-                cmd = "grep -F -v -f %s" % exclude_file.name
-            proc1 = Popen(shlex.split(cmd),
-                          stdin=proc0.stdout,
-                          stdout=PIPE)
-            proc0.stdout.close()
-            stderr = None
-            if self.pattern is None or len(self.pattern) == 0:
-                stdout, stderr = proc1.communicate()
+        # if self.exclude is not None:
+        #     exclude_file = NamedTemporaryFile()
+        #     exclude_file.write("\n".join(self.exclude).encode('utf-8'))
+        #     exclude_file.flush()
+        #     if self.regex:
+        #         cmd = "grep -E -v -f %s" % exclude_file.name
+        #     else:
+        #         cmd = "grep -F -v -f %s" % exclude_file.name
+        #     proc1 = Popen(shlex.split(cmd),
+        #                   stdin=proc0.stdout,
+        #                   stdout=PIPE)
+        #     proc0.stdout.close()
+        #     stderr = None
+        #     if self.pattern is None or len(self.pattern) == 0:
+        #         stdout, stderr = proc1.communicate()
 
-            # always log return codes for debug
-            logger.debug('Proc1 Status: %s', proc1.returncode)
-            logger.debug('Proc1 stderr: %s', stderr)
-            proc0 = proc1
+        #     # always log return codes for debug
+        #     logger.debug('Proc1 Status: %s', proc1.returncode)
+        #     logger.debug('Proc1 stderr: %s', stderr)
+        #     proc0 = proc1
 
-            dirty = True
+        #     dirty = True
 
         if self.pattern is not None and len(self.pattern):
             pattern_file = NamedTemporaryFile()
@@ -138,12 +142,6 @@ class InsightsCommand(InsightsSpec):
 
         if not dirty:
             stdout, stderr = proc0.communicate()
-
-        # Required hack while we still pass shell=True to Popen; a Popen
-        # call with shell=False for a non-existant binary will raise OSError.
-        if proc0.returncode == 126 or proc0.returncode == 127:
-            stdout = "Could not find cmd: %s", self.command
-
         logger.debug("Proc0 Status: %s", proc0.returncode)
         logger.debug("Proc0 stderr: %s", stderr)
         return stdout.decode('utf-8', 'ignore').strip()
@@ -168,30 +166,30 @@ class InsightsFile(InsightsSpec):
             return
 
         cmd = []
-        cmd.append('sed')
-        cmd.append('-rf')
-        cmd.append(constants.default_sed_file)
+        cmd.append('cat')
+        # cmd.append('-rf')
+        # cmd.append(constants.default_sed_file)
         cmd.append(self.real_path)
         sedcmd = Popen(cmd,
                        stdout=PIPE)
 
-        if self.exclude is not None:
-            exclude_file = NamedTemporaryFile()
-            exclude_file.write("\n".join(self.exclude).encode('utf-8'))
-            exclude_file.flush()
+        # if self.exclude is not None:
+        #     exclude_file = NamedTemporaryFile()
+        #     exclude_file.write("\n".join(self.exclude).encode('utf-8'))
+        #     exclude_file.flush()
 
-            if self.regex:
-                cmd = "grep -E -v -f %s" % exclude_file.name
-            else:
-                cmd = "grep -F -v -f %s" % exclude_file.name
-            args = shlex.split(cmd)
-            proc = Popen(args, stdin=sedcmd.stdout, stdout=PIPE)
-            sedcmd.stdout.close()
-            stdin = proc.stdout
-            if self.pattern is None:
-                output = proc.communicate()[0]
-            else:
-                sedcmd = proc
+        #     if self.regex:
+        #         cmd = "grep -E -v -f %s" % exclude_file.name
+        #     else:
+        #         cmd = "grep -F -v -f %s" % exclude_file.name
+        #     args = shlex.split(cmd)
+        #     proc = Popen(args, stdin=sedcmd.stdout, stdout=PIPE)
+        #     sedcmd.stdout.close()
+        #     stdin = proc.stdout
+        #     if self.pattern is None:
+        #         output = proc.communicate()[0]
+        #     else:
+        #         sedcmd = proc
 
         if self.pattern is not None:
             pattern_file = NamedTemporaryFile()
